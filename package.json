@@ -3,7 +3,7 @@
   "source": "index.html",
   "scripts": {
     "start": "parcel",
-    "build": "parcel build"
+    "build": "parcel build --public-url https://scannose.github.io/castleCapture/dist/"
   },
   "devDependencies": {
     "parcel": "^2.16.4"
