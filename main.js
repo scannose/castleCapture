@@ -15,7 +15,7 @@ const generateRandomTroop = (row = -1, col = -1) => {
 };
 
 const parseFort = fort => {
-  return fort.map(str => str.split(' ')).flat();
+  return fort.map(str => str.split(' '));
 }
 
 function Tile({ tile, handleClick }) {
@@ -41,10 +41,10 @@ function TileRow({ rowContent, handleClick }) {
   )
 }
 
-function Board({ board, width, height, handleClick }) {
+function Board({ board, handleClick }) {
   const arr = [];
-  for (let i = 0; i < height; i++) {
-    arr.push(<TileRow class="tileRow" rowContent={board.slice(i * width, (i + 1) * width)} handleClick={j => handleClick(i, j)} key={i} />);
+  for (let i = 0; i < board.length; i++) {
+    arr.push(<TileRow class="tileRow" rowContent={board[i]} handleClick={j => handleClick(i, j)} key={i} />);
     arr.push(<br key={`br_${i}`} />);
   }
   return (
@@ -77,14 +77,15 @@ function ActionPanel({ actions, selectedAction, handleClick }) {
   );
 }
 
-function Game({ width, height, fort1 = "alcatraz", fort2 = "alcatraz" }) {
-  const [board, setBoard] = useState(parseFort(forts[`${fort1}1`].terrain).concat(parseFort(forts[`${fort2}2`].terrain)));
-  const [troops, setTroops] = useState(forts[`${fort1}1`].spawns.concat(forts[`${fort2}2`].spawns.map(x => x + width * height / 2)).map(n => generateRandomTroop(Math.floor(n / width), n % width)));
+function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", defaultTroops, handleReset }) {
+  const fort1 = forts[`${fortName1}1`], fort2 = forts[`${fortName2}2`];
+  const [board, setBoard] = useState(parseFort(fort1.terrain.concat(fort2.terrain)));
+  const [troops, setTroops] = useState(defaultTroops || fort1.spawns.concat(fort2.spawns.map(c => [c[0] + fort1.terrain.length, c[1]])).map(c => generateRandomTroop(c[0], c[1])));
   const [selectedTile, setSelectedTile] = useState(null);
   const [actions, setActions] = useState([]);
   const [selectedAction, setSelectedAction] = useState(-1);
-  const [flag1, setFlag1] = useState(forts[`${fort1}1`].flag);
-  const [flag2, setFlag2] = useState(forts[`${fort2}2`].flag + width * height / 2);
+  const [flag1, setFlag1] = useState([fort1.flag[0], fort1.flag[1]]);
+  const [flag2, setFlag2] = useState([fort2.flag[0] + fort1.terrain.length, fort2.flag[1]]);
 
   const handleTileClick = (rowId, colId) => {
     if (selectedTile && selectedTile[0] == rowId && selectedTile[1] == colId) {
@@ -119,27 +120,76 @@ function Game({ width, height, fort1 = "alcatraz", fort2 = "alcatraz" }) {
     else setSelectedAction(i);
   }
 
-  const visualBoard = board.map(n => {
+  const visualBoard = board.map(row => row.map(i => {
     return {
-      terrain: n,
+      terrain: i,
       selected: false,
       troops: []
     };
-  });
-  visualBoard[flag1].terrain = 'F';
-  visualBoard[flag2].terrain = 'f';
-  if (selectedTile) visualBoard[selectedTile[0] * width + selectedTile[1]].selected = true;
+  }));
+  visualBoard[flag1[0]][flag1[1]].terrain = 'F';
+  visualBoard[flag2[0]][flag2[1]].terrain = 'f';
+  if (selectedTile) visualBoard[selectedTile[0]][selectedTile[1]].selected = true;
   for (let t = 0; t < troops.length; t++) {
-    visualBoard[troops[t].row * width + troops[t].col].troops.push(troops[t]);
+    visualBoard[troops[t].row][troops[t].col].troops.push(troops[t]);
   }
 
   return (
-    <>
-      <Board board={visualBoard} width={width} height={height} handleClick={handleTileClick} />
-      <ActionPanel actions={actions} selectedAction={selectedAction} handleClick={handleActionClick} />
-    </>
+    <div className="game">
+      <Board board={visualBoard} handleClick={handleTileClick} />
+      <div className="sidebar">
+        <button className="reset" onClick={handleReset}>Reset Game</button>
+        <ActionPanel actions={actions} selectedAction={selectedAction} handleClick={handleActionClick} />
+      </div>
+    </div>
   );
-};
+}
+
+function Menu({ handleSubmit }) {
+  return (
+    <form className="menu" onSubmit={handleSubmit}>
+      Player 1:
+      <select>
+        <option value="alcatraz">Alcatraz</option>
+        <option value="bananaSplitDecision">Banana Split Decision</option>
+        <option value="seeingStars">Seeing Stars</option>
+      </select>
+
+      <br />
+
+      Player 2:
+      <select>
+        <option value="alcatraz">Alcatraz</option>
+        <option value="bananaSplitDecision">Banana Split Decision</option>
+        <option value="seeingStars">Seeing Stars</option>
+      </select>
+
+      <br />
+
+      <button>Start</button>
+    </form>
+  );
+}
+
+function CastleCapture({}) {
+  const [gameStart, setGameStart] = useState(false);
+  const [fort1, setFort1] = useState(null);
+  const [fort2, setFort2] = useState(null);
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    setFort1(e.target[0].value);
+    setFort2(e.target[1].value);
+    setGameStart(true);
+  };
+  const handleReset = () => {
+    setGameStart(false);
+  }
+
+  return (
+    gameStart ? <Game fortName1={fort1} fortName2={fort2} handleReset={handleReset} /> : <Menu handleSubmit={handleSubmit} />
+  )
+}
 
 const root = createRoot(document.getElementById("root"));
-root.render(<Game width={15} height={30} />);
+root.render(<CastleCapture />);

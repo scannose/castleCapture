@@ -17,8 +17,8 @@ export const forts = {
       ". . . . . . . . . . . . _ . .",
       ". _ . . . . . . . . . . . . ."
     ],
-    spawns: [25, 26, 28, 29],
-    flag: 1
+    spawns: [[1, 10], [1, 11], [1, 13], [1, 14]],
+    flag: [0, 1]
   },
   alcatraz2: {
     terrain: [
@@ -38,8 +38,8 @@ export const forts = {
       ". . + . . # # @ # # . . . . #",
       ". _ _ _ # * * * * * # . . . ."
     ],
-    spawns: [195, 196, 198, 199],
-    flag: 223
+    spawns: [[13, 0], [13, 1], [13, 3], [13, 4]],
+    flag: [14, 13]
   },
   bananaSplitDecision1: {
     terrain: [
@@ -59,8 +59,8 @@ export const forts = {
       ". . . . = . . . . . = . . . .",
       ". . . . . . . . . . . . . . ."
     ],
-    spawns: [51, 53, 66, 68],
-    flag: 0
+    spawns: [[3, 6], [3, 8], [4, 6], [4, 8]],
+    flag: [0, 0]
   },
   bananaSplitDecision2: {
     terrain: [
@@ -80,8 +80,8 @@ export const forts = {
       "* * * # . . v v v . . # . . .",
       "* * * @ . > . . . < . = . . ."
     ],
-    spawns: [156, 158, 171, 173],
-    flag: 224
+    spawns: [[10, 6], [10, 8], [11, 6], [11, 8]],
+    flag: [14, 14]
   },
   seeingStars1: {
     terrain: [
@@ -101,8 +101,8 @@ export const forts = {
       ". . . . . . . = . . . . . . .",
       ". . . . . . . . . . . . . . ."
     ],
-    spawns: [81, 83, 111, 113],
-    flag: 61
+    spawns: [[5, 6], [5, 8], [7, 6], [7, 8]],
+    flag: [4, 1]
   },
   seeingStars2: {
     terrain: [
@@ -122,7 +122,7 @@ export const forts = {
       "# # . # ^ # . . . # # ^ # . .",
       ". . . . . . # . # . . . . . ."
     ],
-    spawns: [111, 113, 141, 143],
-    flag: 163
+    spawns: [[7, 6], [7, 8], [9, 6], [9, 8]],
+    flag: [10, 13]
   }
 };

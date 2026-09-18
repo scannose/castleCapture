@@ -13,7 +13,7 @@
   background: #ff0;
 }
 
-.action {
+.action, .reset {
   background: #fff;
   border: 1px solid #000;
   width: 100%;
@@ -26,8 +26,13 @@
 
 .actionPanel {
   text-align: center;
-  margin: 20px 40px;
+  margin-top: 20px;
+  width: inherit;
+}
+
+.sidebar {
   width: 120px;
+  margin-left: 40px;
 }
 
 .tileRow {
@@ -38,7 +43,11 @@
   display: block;
 }
 
-#root {
+.game {
   display: flex;
   flex-direction: horizontal;
+}
+
+.menu {
+  display: block;
 }
