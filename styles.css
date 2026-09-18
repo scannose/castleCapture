@@ -24,7 +24,7 @@
   background: #0ff !important;
 }
 
-.actionPanel {
+.troopPanel, .actionPanel {
   text-align: center;
   margin-top: 20px;
   width: inherit;

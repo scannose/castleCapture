@@ -8,6 +8,8 @@ const generateRandomTroop = (row = -1, col = -1) => {
     char: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 52)],
     row: row >= 0 ? row : Math.floor(Math.random() * 30),
     col: col >= 0 ? col : Math.floor(Math.random() * 15),
+    power: 5 + Math.floor(Math.random() * 11),
+    speed: 2 + Math.floor(Math.random() * 5),
     actions: [
       "move"
     ]
@@ -16,6 +18,28 @@ const generateRandomTroop = (row = -1, col = -1) => {
 
 const parseFort = fort => {
   return fort.map(str => str.split(' '));
+}
+
+const floodFill = (board, origin, speed) => {
+  const dist = board.map(row => row.map(i => -1));
+  const queue = [origin];
+  dist[origin[0]][origin[1]] = 0;
+
+  let index = 0;
+  while (index < queue.length && dist[queue[index][0]][queue[index][1]] < speed) {
+    for (let i = 0; i < 4; i++) {
+      let adj = [queue[index][0] + [1, 0, -1, 0][i], queue[index][1] + [0, 1, 0, -1][i]];
+      if (adj[0] < 0 || adj[0] >= board.length || adj[1] < 0 || adj[1] >= board[0].length) continue;
+      if (board[adj[0]][adj[1]] != '.') continue;
+      if (dist[adj[0]][adj[1]] == -1) {
+        dist[adj[0]][adj[1]] = dist[queue[index][0]][queue[index][1]] + 1;
+        queue.push(adj);
+      }
+    }
+    index++;
+  }
+
+  return dist;
 }
 
 function Tile({ tile, handleClick }) {
@@ -49,6 +73,32 @@ function Board({ board, handleClick }) {
   }
   return (
     <div className="board">
+      {arr}
+    </div>
+  );
+}
+
+function Troop({ troop }) {
+  return (
+    <p className="troop">
+      {`${troop.name} (${troop.char})`}
+      <br />
+      {`Power: ${troop.power}`}
+      <br />
+      {`Speed: ${troop.speed}`}
+    </p>
+  );
+}
+
+function TroopPanel({ troops }) {
+  const arr = [];
+  for (let t = 0; t < troops.length; t++) {
+    arr.push(<Troop troop={troops[t]} key={t} />);
+  }
+  return (
+    <div className="troopPanel">
+      Troops
+      <br />
       {arr}
     </div>
   );
@@ -93,8 +143,12 @@ function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", de
       setActions([]);
     } else {
       if (selectedAction >= 0) {
-        troops[actions[selectedAction].troopId].row = rowId;
-        troops[actions[selectedAction].troopId].col = colId;
+        if (floodFill(board, [troops[actions[selectedAction].troopId].row, troops[actions[selectedAction].troopId].col], troops[actions[selectedAction].troopId].speed)[rowId][colId] >= 0) {
+          const newTroops = troops.slice();
+          newTroops[actions[selectedAction].troopId].row = rowId;
+          newTroops[actions[selectedAction].troopId].col = colId;
+          setTroops(newTroops);
+        }
       }
       
       setSelectedTile([rowId, colId]);
@@ -139,7 +193,8 @@ function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", de
       <Board board={visualBoard} handleClick={handleTileClick} />
       <div className="sidebar">
         <button className="reset" onClick={handleReset}>Reset Game</button>
-        <ActionPanel actions={actions} selectedAction={selectedAction} handleClick={handleActionClick} />
+        {selectedTile && <TroopPanel troops={troops.filter(troop => troop.row == selectedTile[0] && troop.col == selectedTile[1])} />}
+        {selectedTile && <ActionPanel actions={actions} selectedAction={selectedAction} handleClick={handleActionClick} />}
       </div>
     </div>
   );
