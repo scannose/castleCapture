@@ -5,12 +5,32 @@
   height: 25px;
 }
 
-.tileSelected {
-  background: #0ff !important;
+.tileTerrain {
+  background: #bfbfbf;
 }
 
 .tileTroop {
   background: #ff0;
+}
+
+.tileTroopWeakened {
+  background: #ff7f00;
+}
+
+.tileTroopDead {
+  background: #f00;
+}
+
+.tileHighlighted {
+  background: #0f0;
+}
+
+.tileHighlighted2 {
+  background: #7fff7f;
+}
+
+.tileSelected {
+  background: #0ff;
 }
 
 .action, .reset {

@@ -1,49 +1,23 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client'
 import { forts } from './forts.js'
+import { troops } from './troops.js'
 
-const generateRandomTroop = (row = -1, col = -1) => {
-  return {
-    name: `${["knight", "bowman", "healer"][Math.floor(Math.random() * 3)]}${Math.floor(Math.random() * 10000)}`,
-    char: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 52)],
-    row: row >= 0 ? row : Math.floor(Math.random() * 30),
-    col: col >= 0 ? col : Math.floor(Math.random() * 15),
-    power: 5 + Math.floor(Math.random() * 11),
-    speed: 2 + Math.floor(Math.random() * 5),
-    actions: [
-      "move"
-    ]
-  };
+const createTroop = (troopName, coords, team) => {
+  return Object.assign({
+    row: coords[0],
+    col: coords[1],
+    health: 2,
+    team: team || (Math.floor(Math.random() * 2) + 1)
+  }, troops[troopName]);
 };
 
 const parseFort = fort => {
   return fort.map(str => str.split(' '));
-}
-
-const floodFill = (board, origin, speed) => {
-  const dist = board.map(row => row.map(i => -1));
-  const queue = [origin];
-  dist[origin[0]][origin[1]] = 0;
-
-  let index = 0;
-  while (index < queue.length && dist[queue[index][0]][queue[index][1]] < speed) {
-    for (let i = 0; i < 4; i++) {
-      let adj = [queue[index][0] + [1, 0, -1, 0][i], queue[index][1] + [0, 1, 0, -1][i]];
-      if (adj[0] < 0 || adj[0] >= board.length || adj[1] < 0 || adj[1] >= board[0].length) continue;
-      if (board[adj[0]][adj[1]] != '.') continue;
-      if (dist[adj[0]][adj[1]] == -1) {
-        dist[adj[0]][adj[1]] = dist[queue[index][0]][queue[index][1]] + 1;
-        queue.push(adj);
-      }
-    }
-    index++;
-  }
-
-  return dist;
-}
+};
 
 function Tile({ tile, handleClick }) {
-  const tileClass = `tile ${tile.selected ? "tileSelected" : ""} ${tile.troops.length ? "tileTroop" : ""}`;
+  const tileClass = `tile ${tile.terrain != '.' ? "tileTerrain" : ""} ${tile.selected ? "tileSelected" : ""} ${tile.highlighted ? "tileHighlighted" : ""} ${tile.troops.length ? ["tileTroopDead", "tileTroopWeakened", "tileTroop"][tile.troops[0].health] : ""}`;
   const tileChar = tile.troops.length ? tile.troops[0].char : tile.terrain;
 
   return (
@@ -81,11 +55,19 @@ function Board({ board, handleClick }) {
 function Troop({ troop }) {
   return (
     <p className="troop">
-      {`${troop.name} (${troop.char})`}
+      {`${troop.name} (Team ${troop.team})`}
       <br />
       {`Power: ${troop.power}`}
       <br />
       {`Speed: ${troop.speed}`}
+      {troop.flying && (<>
+        <br />
+        Flying
+      </>)}
+      {troop.health < 2 && (<>
+        <br />
+        {troop.health ? "Weakened" : "Dead"}
+      </>)}
     </p>
   );
 }
@@ -107,7 +89,7 @@ function TroopPanel({ troops }) {
 function Action({ action, selected, handleClick }) {
   return (
     <button className={`action ${selected ? "selectedAction" : ""}`} onClick={handleClick}>
-      {action.name}
+      {action.action.name}
     </button>
   )
 }
@@ -130,7 +112,7 @@ function ActionPanel({ actions, selectedAction, handleClick }) {
 function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", defaultTroops, handleReset }) {
   const fort1 = forts[`${fortName1}1`], fort2 = forts[`${fortName2}2`];
   const [board, setBoard] = useState(parseFort(fort1.terrain.concat(fort2.terrain)));
-  const [troops, setTroops] = useState(defaultTroops || fort1.spawns.concat(fort2.spawns.map(c => [c[0] + fort1.terrain.length, c[1]])).map(c => generateRandomTroop(c[0], c[1])));
+  const [troops, setTroops] = useState(defaultTroops || fort1.spawns.map(tile => createTroop("knight", tile, 1)).concat(fort2.spawns.map(tile => createTroop("archer", [tile[0] + fort1.terrain.length, tile[1]], 2))));
   const [selectedTile, setSelectedTile] = useState(null);
   const [actions, setActions] = useState([]);
   const [selectedAction, setSelectedAction] = useState(-1);
@@ -142,28 +124,42 @@ function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", de
       setSelectedTile(null);
       setActions([]);
     } else {
+      let changeSelected = true;
       if (selectedAction >= 0) {
-        if (floodFill(board, [troops[actions[selectedAction].troopId].row, troops[actions[selectedAction].troopId].col], troops[actions[selectedAction].troopId].speed)[rowId][colId] >= 0) {
-          const newTroops = troops.slice();
-          newTroops[actions[selectedAction].troopId].row = rowId;
-          newTroops[actions[selectedAction].troopId].col = colId;
+        changeSelected = false;
+        const newBoard = board.map(row => row.slice());
+        const newTroops = troops.slice();
+        const thisTroop = newTroops[actions[selectedAction].troopId];
+        const game = {
+          board: newBoard,
+          troops: newTroops
+        };
+        if (actions[selectedAction].action.range.call(thisTroop, game).find(tile => tile[0] == rowId && tile[1] == colId)) {
+          actions[selectedAction].action.effect.call(thisTroop, game, [rowId, colId]);
+          setBoard(newBoard);
           setTroops(newTroops);
-        }
-      }
-      
-      setSelectedTile([rowId, colId]);
-      const arr = [];
-      for (let t = 0; t < troops.length; t++) {
-        if (troops[t].row == rowId && troops[t].col == colId) {
-          for (let a = 0; a < troops[t].actions.length; a++) {
-            arr.push({
-              name: `${troops[t].name} - ${troops[t].actions[a]}`,
-              troopId: t
-            });
+          if (thisTroop.row != selectedTile[0] || thisTroop.col != selectedTile[1]) {
+            changeSelected = true;
+            rowId = thisTroop.row;
+            colId = thisTroop.col;
           }
         }
       }
-      setActions(arr);
+      if (changeSelected) {
+        setSelectedTile([rowId, colId]);
+        const arr = [];
+        for (let t = 0; t < troops.length; t++) {
+          if (troops[t].row == rowId && troops[t].col == colId) {
+            for (let a in troops[t].actions) {
+              arr.push({
+                action: troops[t].actions[a],
+                troopId: t
+              });
+            }
+          }
+        }
+        setActions(arr);
+      }
     }
 
     setSelectedAction(-1);
@@ -178,12 +174,15 @@ function Game({ fortName1 = "bananaSplitDecision", fortName2 = "seeingStars", de
     return {
       terrain: i,
       selected: false,
+      highlighted: false,
       troops: []
     };
   }));
   visualBoard[flag1[0]][flag1[1]].terrain = 'F';
   visualBoard[flag2[0]][flag2[1]].terrain = 'f';
   if (selectedTile) visualBoard[selectedTile[0]][selectedTile[1]].selected = true;
+
+  if (selectedAction >= 0) actions[selectedAction].action.range.call(troops[actions[selectedAction].troopId], {board: board, troops: troops}).forEach(tile => {if (0 <= tile[0] && tile[0] < visualBoard.length && 0 <= tile[1] && tile[1] < visualBoard[tile[0]].length) visualBoard[tile[0]][tile[1]].highlighted = true;});
   for (let t = 0; t < troops.length; t++) {
     visualBoard[troops[t].row][troops[t].col].troops.push(troops[t]);
   }
